@@ -1,0 +1,59 @@
+= revenant
+
+* http://github.com/wilson/revenant
+
+== DESCRIPTION:
+
+Death is only a beginning.
+
+== FEATURES:
+
+* Reliable distributed locking made simple
+* Start as many masters as you want, only one will execute at a time
+* Currently supports MySQL GET_LOCK()
+
+== SYNOPSIS:
+
+Have some work that needs to be done without worrying about mutual exclusion?
+Lots of scheduled jobs to coordinate that must not interfere?
+Want that work to keep happening when servers die?
+
+#!/bin/env ruby
+require 'revenant/daemon' # includes daemon functionality
+task = revenant(:example)
+task.on_load { require 'config/environment.rb' }
+task.run { some_work_protected_by_mysql_lock }
+
+== REQUIREMENTS:
+
+* daemons
+* mysql (not a dependency, but you will probably want it)
+
+== INSTALL:
+
+* gem install revenant
+
+== LICENSE:
+
+(The MIT License)
+
+Copyright (c) 2010 Wilson Bilkovich
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

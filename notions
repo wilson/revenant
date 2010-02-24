@@ -1,0 +1,47 @@
+# minimal
+task = revenant(:fetcher) do |t|
+  t.on_load { require('config/environment.rb') }
+end
+task.run { Account.whatever }
+
+# more options
+task = revenant(:fetcher) do |t|
+  t.relock_every = 5 # every 5 loops, make sure we still have the lock
+  t.sleep_for = 10 # 10 seconds per lock/loop
+  t.lock_type = :mysql # default already
+
+  t.on_load do # after a fork
+    require "config/environment.rb"
+  end
+
+  t.on_exit do
+    $stderr.puts "whee!"
+  end
+end
+task.run do
+  Account.produce_batch_of_work
+end
+
+__END__
+repeatedly call a block, but only while you have a lock
+locks are a name
+
+required options:
+name
+
+options:
+type: defaults to :mysql, currently the only supported value
+sleep time between loops in seconds
+re-acquire lock every x loops; default is 1; nil or 0 means never check again
+lock_function: block to run when acquiring a lock; returning true means this process has the lock; false otherwise.
+(defaults to using the mysql connection to execute get_lock)
+give a block to return the connection object: defaults to ActiveRecord::Base.connection.raw_connection
+
+pid: defaults to /tmp/<name>.pid
+on_load: a block that will execute before we start checking for a lock
+on_exit: a block that will execute when the process shuts down
+
+raise Interrupt or send QUIT to shut down the process
+send USR2 to restart the process with new code
+
+# vim: syntax=ruby
