@@ -145,10 +145,15 @@ module Revenant
 
     # Generally overridden when Revenant::Daemon is included
     def startup
+      trap("INT") do
+        @shutdown = true
+        @restart = false
+      end
     end
 
     # Generally overridden when Revenant::Daemon is included
     def shutdown
+      log "#{name} is shutting down"
       exit 0
     end
   end # Task

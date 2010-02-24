@@ -17,6 +17,7 @@ module Revenant
   end
 end
 
+require 'time'
 current = File.expand_path('..', __FILE__)
 make_relative = /#{current}\//
 $: << current unless $:.include?(current)

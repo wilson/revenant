@@ -4,11 +4,11 @@
 
 == DESCRIPTION:
 
-Death is only a beginning.
+Death is only a beginning. Failure will not be forgotten.
 
 == FEATURES:
 
-* Reliable distributed locking made simple
+* Dead simple distributed locking
 * Start as many masters as you want, only one will execute at a time
 * Currently supports MySQL GET_LOCK()
 
@@ -23,6 +23,11 @@ require 'revenant/daemon' # includes daemon functionality
 task = revenant(:example)
 task.on_load { require 'config/environment.rb' }
 task.run { some_work_protected_by_mysql_lock }
+
+Want to run without a distributed lock?
+task.lock_function { true }
+Want your code to sleep forever?
+task.lock_function { false }
 
 == REQUIREMENTS:
 

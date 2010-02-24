@@ -1,7 +1,6 @@
 require 'revenant/task'
 require 'revenant/pid'
 require 'daemons'
-require 'time'
 
 # "startup" and "shutdown" are the methods Task expects modules like
 # this one to override.
