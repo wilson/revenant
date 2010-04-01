@@ -123,8 +123,12 @@ module Revenant
       log "shutting down after interrupt: #{ex.message}"
       shutdown
     rescue Exception => ex
-      error ex.message, false
-      shutdown
+      if SystemExit === ex
+        raise ex
+      else
+        error ex.message, false
+        shutdown
+      end
     ensure
       on_exit.call if on_exit
     end # run_loop
@@ -140,11 +144,11 @@ module Revenant
     end
 
     def log(message)
-      STDERR.puts "#{Time.now} - #{message}"
+      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - #{message}"
     end
 
     def error(message, quit = true)
-      STDERR.puts "#{Time.now} - ERROR: #{message}"
+      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
       exit 1 if quit
     end
 
@@ -156,7 +160,7 @@ module Revenant
       end
     end
 
-    # Generally overridden when Revenant::Daemon is included
+    ## Generally overridden when Revenant::Daemon is included
     def shutdown
       log "#{name} is shutting down"
       exit 0

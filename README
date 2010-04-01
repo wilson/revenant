@@ -18,10 +18,12 @@ Have some work that needs to be done without worrying about mutual exclusion?
 Lots of scheduled jobs to coordinate that must not interfere?
 Want that work to keep happening when servers die?
 
-#!/bin/env ruby
+#!/usr/bin/env ruby
 require 'revenant/daemon' # includes daemon functionality
 task = revenant(:example)
 task.on_load { require 'config/environment.rb' }
+task.on_exit { something_to_do_last }
+# start working and exit the parent process:
 task.run { some_work_protected_by_mysql_lock }
 
 Want to run without a distributed lock?

@@ -1,0 +1,29 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+$: << File.expand_path("../../lib", __FILE__)
+require 'revenant/daemon'
+
+task = revenant(:example)
+task.log_file = "/tmp/example.log"
+task.pid_file = "/tmp/example-#{$$}.pid"
+
+task.on_load do
+  # If we were using ActiveRecord here, the connection object
+  # would automatically be determined.
+  require 'mysql'
+  conn = Mysql.connect(nil, "root", nil, nil, nil, "/tmp/mysql.sock")
+  Revenant::MySQL.connection = conn
+
+  puts "loaded #{task.script} as pid #{$$}"
+end
+
+task.on_exit do
+  puts "[#{$$}] exiting"
+end
+
+count = 0
+task.run do
+  count += 1
+  puts "[#{$$}] work loops: #{count}"
+end
+

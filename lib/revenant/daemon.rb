@@ -14,7 +14,7 @@ module ::Revenant::Daemon
 
     if rise_again?
       log "#{name} is restarting"
-      `#{script}`
+      system script
     else
       log "#{name} is shutting down"
     end
@@ -23,17 +23,12 @@ module ::Revenant::Daemon
   end
 
   def pid_file
-    @pid_file ||= File.join("/tmp",@name)
+    @pid_file ||= File.join("/tmp", "#{@name}.pid")
   end
 
   def pid_file=(val)
     @pid_file = val
   end
-
-  attr_accessor :log_file
-
-  # Everything else is a daemon implementation detail
-  protected
 
   def script
     @script ||= File.expand_path($0)
@@ -43,8 +38,14 @@ module ::Revenant::Daemon
     @script = path
   end
 
+  attr_accessor :log_file
+
+  # Everything else is a daemon implementation detail
+  protected
+
   def daemonize
     verify_permissions
+    script # determine script path before forking if necessary
     Daemonize.daemonize(log_file, $0)
     @pid.create
     setup_signals
@@ -84,8 +85,11 @@ module ::Revenant::Daemon
   end
 end
 
-# Teach Tasks how to run like daemons
-class ::Revenant::Task
-  include ::Revenant::Daemon
+module Revenant
+  class Task
+    remove_method :startup
+    remove_method :shutdown
+    include ::Revenant::Daemon
+  end
 end
 

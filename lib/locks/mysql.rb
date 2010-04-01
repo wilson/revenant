@@ -35,7 +35,7 @@ module Revenant
       "select get_lock('#{lock_name}',0);"
     end
 
-    # Currently defaults to the ActiveRecord connection # if AR is loaded.
+    # Currently defaults to the ActiveRecord connection if AR is loaded.
     # Set this in your task setup block if that is not what you want.
     def connection
       @connection ||= if defined?(ActiveRecord)
