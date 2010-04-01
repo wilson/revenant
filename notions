@@ -41,7 +41,10 @@ pid: defaults to /tmp/<name>.pid
 on_load: a block that will execute before we start checking for a lock
 on_exit: a block that will execute when the process shuts down
 
-raise Interrupt or send QUIT to shut down the process
+raise Interrupt or send TERM to shut down the process
 send USR2 to restart the process with new code
+
+'revenant' gem binary to generate executable scripts
+--bundle option to generate bundler activation code?
 
 # vim: syntax=ruby

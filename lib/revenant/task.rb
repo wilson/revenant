@@ -88,8 +88,9 @@ module Revenant
       @sleep_for = seconds.abs
     end
 
-    # As a daemon, run until we receive a shutdown/reload signal,
+    # Run until we receive a shutdown/reload signal,
     # or when the worker raises an Interrupt.
+    # Runs after a fork when Revenant::Daemon is enabled.
     def run_loop(&block)
       acquired = false
       loop do
@@ -106,7 +107,7 @@ module Revenant
           # With relock_every set to 0, only acquire the lock once.
           # Hope you're sure that lock beongs to you.
           acquired ||= lock_function.call(@name)
-          i = 0 # no p
+          i = 0 # no point in incrementing something we don't check.
         end
 
         yield if acquired
@@ -119,6 +120,10 @@ module Revenant
         i += 1
       end # loop
     rescue Interrupt => ex
+      log "shutting down after interrupt: #{ex.message}"
+      shutdown
+    rescue Exception => ex
+      error ex.message, false
       shutdown
     ensure
       on_exit.call if on_exit
@@ -138,9 +143,9 @@ module Revenant
       STDERR.puts "#{Time.now} - #{message}"
     end
 
-    def error(message)
+    def error(message, quit = true)
       STDERR.puts "#{Time.now} - ERROR: #{message}"
-      exit 1
+      exit 1 if quit
     end
 
     # Generally overridden when Revenant::Daemon is included
