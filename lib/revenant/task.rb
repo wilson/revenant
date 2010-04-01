@@ -5,8 +5,8 @@ module Revenant
     attr_reader :name
 
     def initialize(name = nil)
-      unless name.respond_to?(:to_sym)
-        raise ArgumentError, "Usage: new(name_string)"
+      unless String === name || Symbol === name
+        raise ArgumentError, "Usage: new(task_name)"
       end
       @name = name.to_sym
     end
@@ -71,8 +71,11 @@ module Revenant
     # Set the frequency with which locks are re-acquired.
     def relock_every=(loops)
       loops ||= 0
-      loops = loops.abs
-      @relock_every = loops.zero? ? nil : loops
+      if Integer === loops && loops >= 0
+        @relock_every = loops
+      else
+        raise ArgumentError, "argument must be nil or an integer >= 0"
+      end
     end
 
     # How many seconds to sleep after each work loop.
@@ -84,8 +87,12 @@ module Revenant
 
     # Set the number of seconds to sleep for after a work loop.
     def sleep_for=(seconds)
-      seconds ||= 5
-      @sleep_for = seconds.abs
+      seconds ||= 0
+      if Integer === seconds && seconds >= 0
+        @sleep_for = seconds
+      else
+        raise ArgumentError, "argument must be nil or an integer >= 0"
+      end
     end
 
     # Run until we receive a shutdown/reload signal,

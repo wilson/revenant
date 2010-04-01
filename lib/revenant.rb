@@ -6,7 +6,11 @@ module Revenant
   # while configuring a Revenant::Process
   def self.register(lock_type, klass)
     @lock_types ||= {}
-    @lock_types[lock_type.to_sym] = klass
+    if klass.respond_to?(:lock_function)
+      @lock_types[lock_type.to_sym] = klass
+    else
+      raise ArgumentError, "#{klass} must have a `lock_function` that returns a callable object"
+    end
   end
 
   def self.find_module(lock_type)
@@ -27,8 +31,8 @@ end
 
 module Kernel
   def revenant(name = nil)
-    unless name.respond_to?(:to_sym)
-      raise ArgumentError, "Usage: task = revenant('example') {|r| #config }"
+    unless String === name || Symbol === name
+      raise ArgumentError, "Usage: task = revenant('example') {|r| configure_as_needed }"
     end
     require 'revenant/task'
     instance = Revenant::Task.new(name)
