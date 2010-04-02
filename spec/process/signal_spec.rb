@@ -4,7 +4,6 @@ require 'revenant/task'
 describe Revenant::Task do
   before do
     @task = Revenant::Task.new("signalspec")
-    @task.stubs(:exit)
   end
 
   it "shuts down on SIGINT when in the foreground" do

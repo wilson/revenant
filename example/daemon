@@ -29,11 +29,11 @@ task.on_load do
   conn = Mysql.connect(nil, "root", nil, nil, nil, "/tmp/mysql.sock")
   Revenant::MySQL.connection = conn
 
-  puts "loaded #{task.script} as pid #{$$}"
+  puts "*** #{task.script} forked into pid #{$$}"
 end
 
 task.on_exit do
-  puts "[#{$$}] exited"
+  puts "[#{$$}] running your cleanup code"
 end
 
 # While we have the lock, do some work.
@@ -43,7 +43,8 @@ task.run do
   puts "[#{$$}] work loops: #{count}"
 end
 
-# Before the process exits, control will reach this point.
+# Before the forked process exits, control will reach this point.
 # Generally you should use 'on_exit' instead of just expecting
 # code after the 'run' block to execute.
 
+puts "[#{$$}] example/daemon script exiting"

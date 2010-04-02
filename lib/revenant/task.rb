@@ -31,6 +31,7 @@ module Revenant
       startup # typically daemonizes the process, can have various implementations
       on_load.call(self) if on_load
       run_loop(&block)
+      shutdown
     end
 
     # Code to run when the task is exiting
@@ -119,46 +120,46 @@ module Revenant
     # Runs after a fork when Revenant::Daemon is enabled.
     def run_loop(&block)
       acquired = false
-      loop do
-        shutdown if shutdown_pending?
+      begin
+        loop do
+          break if shutdown_pending?
 
-        # The usual situation
-        if relock_every != 0
-          i ||= 0
-          # 0 % anything is 0, so we always try to get the lock on the first loop.
-          if (i %= relock_every) == 0
-            acquired = lock_function.call(@name)
+          # The usual situation
+          if relock_every != 0
+            i ||= 0
+            # 0 % anything is 0, so we always try to get the lock on the first loop.
+            if (i %= relock_every) == 0
+              acquired = lock_function.call(@name)
+            end
+          else
+            # With relock_every set to 0, only acquire the lock once.
+            # Hope you're sure that lock beongs to you.
+            acquired ||= lock_function.call(@name)
+            i = 0 # no point in incrementing something we don't check.
           end
-        else
-          # With relock_every set to 0, only acquire the lock once.
-          # Hope you're sure that lock beongs to you.
-          acquired ||= lock_function.call(@name)
-          i = 0 # no point in incrementing something we don't check.
-        end
 
-        yield if acquired
+          yield if acquired
 
-        # Sleep one second at a time so we can quickly respond to
-        # shutdown requests.
-        sleep_for.times do
-          sleep(1) unless shutdown_pending?
-        end
-        i += 1
-      end # loop
-    rescue Interrupt => ex
-      log "shutting down after interrupt: #{ex.message}"
-      shutdown_soon # Always shut down from an Interrupt, even mid-restart.
-      shutdown
-    rescue Exception => ex
-      # We really want to rescue everything but Interrupt and SystemExit.
-      raise ex if SystemExit === ex
-      # Log an error but do not quit.
-      error ex.message, false
-      # Restart if we run into an exception.
-      restart_soon
-      shutdown
-    ensure
-      on_exit.call if on_exit
+          # Sleep one second at a time so we can quickly respond to
+          # shutdown requests.
+          sleep_for.times do
+            sleep(1) unless shutdown_pending?
+          end
+          i += 1
+        end # loop
+      rescue Interrupt => ex
+        log "shutting down after interrupt: #{ex.message}"
+        shutdown_soon # Always shut down from an Interrupt, even mid-restart.
+      rescue Exception => ex
+        # We really want to rescue everything but Interrupt and SystemExit.
+        raise ex if SystemExit === ex
+        # Log an error but do not quit.
+        error ex.message
+        # Restart if we run into an exception.
+        restart_soon
+      ensure
+        on_exit.call(self) if on_exit
+      end # begin block
     end # run_loop
     protected :run_loop
 
@@ -194,7 +195,6 @@ module Revenant
     ## Generally overridden when Revenant::Daemon is included
     def shutdown
       log "#{name} is shutting down"
-      exit 0
     end
 
     ## Used to lazily store/retrieve options that may be needed by plugins.
@@ -216,9 +216,8 @@ module Revenant
       STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - #{message}"
     end
 
-    def error(message, quit = true)
+    def error(message)
       STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
-      exit 1 if quit
     end
 
     # Install any plugins that have registered themselves, or a custom

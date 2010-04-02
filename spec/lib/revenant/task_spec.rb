@@ -11,7 +11,6 @@ describe Revenant::Task do
     end
     @lock = SpecLock
     Revenant.register("spec", @lock)
-    @task.stubs(:exit)
   end
 
   it "requires a name" do
@@ -110,7 +109,6 @@ describe Revenant::Task do
       @time = @now.iso8601(2)
       @pid = $$
       Time.stubs(:now).returns(@now)
-      @task.stubs(:exit)
       STDERR.stubs(:puts)
     end
 
@@ -125,16 +123,6 @@ describe Revenant::Task do
       STDERR.expects(:puts).with(expected)
       @task.error "bad"
     end
-
-    it "exits by default when logging an error" do
-      @task.expects(:exit).with(1)
-      @task.error "oops"
-    end
-
-    it "does not exit on error if second argument is false" do
-      @task.expects(:exit).never
-      @task.error "oops", false
-    end
   end
 
   context "#startup" do
@@ -145,8 +133,7 @@ describe Revenant::Task do
   end
 
   context "#shutdown" do
-    it "logs the event and exits" do
-      @task.expects(:exit).with(0)
+    it "logs the event" do
       @task.expects(:log).with("spec is shutting down")
       @task.shutdown
     end

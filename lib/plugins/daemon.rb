@@ -16,7 +16,6 @@ begin
         class << task
           include ::Revenant::Daemon
         end
-        task.log "installed daemon plugin"
       end
     end
 
