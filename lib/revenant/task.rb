@@ -3,12 +3,14 @@ require 'revenant'
 module Revenant
   class Task
     attr_reader :name
+    attr_accessor :options
 
     def initialize(name = nil)
       unless String === name || Symbol === name
         raise ArgumentError, "Usage: new(task_name)"
       end
       @name = name.to_sym
+      @options = {}
     end
 
     # Takes actual block of code that is to be guarded by
@@ -22,6 +24,7 @@ module Revenant
       if block.nil?
         raise ArgumentError, "Usage: run { while_we_have_the_lock }"
       end
+      install_plugins
       startup # typically daemonizes the process, can have various implementations
       on_load.call if on_load
       run_loop(&block)
@@ -182,16 +185,28 @@ module Revenant
 
     # Generally overridden when Revenant::Daemon is included
     def startup
-      trap("INT") do
-        @shutdown = true
-        @restart = false
-      end
+      trap("INT") { shutdown_soon }
     end
 
     ## Generally overridden when Revenant::Daemon is included
     def shutdown
       log "#{name} is shutting down"
       exit 0
+    end
+
+    ## Used to lazily store/retrieve options that may be needed by plugins.
+    # We may want to capture, say, +log_file+ before actually loading the
+    # code that might care about such a concept.
+    def method_missing(name, *args)
+      name = name.to_s
+      last_char = name[-1,1]
+      super unless last_char == "=" || last_char == "?"
+      attr_name = name[0..-2].to_sym # :foo for 'foo=' or 'foo?'
+      if last_char == "="
+        @options[attr_name] = args.at(0)
+      else
+        @options[attr_name]
+      end
     end
 
     def log(message)
@@ -201,6 +216,22 @@ module Revenant
     def error(message, quit = true)
       STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
       exit 1 if quit
+    end
+
+    # Installs a module plugin for the Task.
+    # Generally this is ::Revenant::Daemon providing daemon support.
+    def install(plugin)
+      singleton = class << self; self; end
+      singleton.send(:include, plugin)
+    end
+
+    # Install the built-in daemon plugin if the 'daemon' option is set.
+    # Subclasses may do otherwise.
+    def install_plugins
+      if daemon?
+        require 'revenant/daemon'
+        install ::Revenant::Daemon
+      end
     end
   end # Task
 end # Revenant

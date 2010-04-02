@@ -3,7 +3,7 @@ require 'revenant/pid'
 require 'daemons'
 
 # "startup" and "shutdown" are the methods Task expects modules like
-# this one to override.
+# this one to replace.
 module ::Revenant::Daemon
   def startup
     daemonize
@@ -22,25 +22,20 @@ module ::Revenant::Daemon
     exit 0
   end
 
+  # Everything else is a daemon implementation detail, and will not
+  # be executed if +Task+ also happens to have a method by the same name.
   def pid_file
-    @pid_file ||= File.join("/tmp", "#{@name}.pid")
+    @options[:pid_file] ||= File.join("/tmp", "#{@name}.pid")
   end
 
-  def pid_file=(val)
-    @pid_file = val
+  def log_file
+    @options[:log_file]
   end
 
   def script
-    @script ||= File.expand_path($0)
+    @options[:script] ||= File.expand_path($0)
   end
 
-  def script=(path)
-    @script = path
-  end
-
-  attr_accessor :log_file
-
-  # Everything else is a daemon implementation detail
   protected
 
   def daemonize
@@ -48,7 +43,7 @@ module ::Revenant::Daemon
     script # determine script path before forking if necessary
     Daemonize.daemonize(log_file, $0)
     @pid.create
-    setup_signals
+    daemon_signals
   end
 
   def verify_permissions
@@ -70,26 +65,15 @@ module ::Revenant::Daemon
     end
   end
 
-  def setup_signals
+  def daemon_signals
     trap("TERM") do
       log "Received TERM signal"
-      @shutdown = true
-      @restart = false
+      shutdown_soon
     end
 
     trap("USR2") do
       log "Received USR2 signal"
-      @shutdown = true
-      @restart = true
+      restart_soon
     end
   end
 end
-
-module Revenant
-  class Task
-    remove_method :startup
-    remove_method :shutdown
-    include ::Revenant::Daemon
-  end
-end
-

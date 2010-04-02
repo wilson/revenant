@@ -36,6 +36,7 @@ module Kernel
     end
     require 'revenant/task'
     instance = Revenant::Task.new(name)
+    instance.daemon = true
     yield instance if block_given?
     instance
   end

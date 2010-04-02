@@ -65,5 +65,11 @@ describe Kernel do
       task.should be_instance_of(Revenant::Task)
       task.name.should == :spec
     end
+
+    it "defaults to enabling the 'daemon' option" do
+      task = revenant(:example)
+      task.options[:daemon].should == true
+      task.daemon?.should == true
+    end
   end
 end

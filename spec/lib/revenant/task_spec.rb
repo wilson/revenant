@@ -164,6 +164,14 @@ describe Revenant::Task do
     @task.should_not be_restart_pending
   end
 
+  context "#run" do
+    context "without an on_load function" do
+    end
+
+    context "with an on_load function" do
+    end
+  end
+
   context "#run_loop" do
     context "relock_every = 0" do
     end
