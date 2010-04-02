@@ -1,4 +1,5 @@
 require 'revenant'
+require 'time'
 
 module Revenant
   class Task
@@ -15,8 +16,10 @@ module Revenant
 
     # Takes actual block of code that is to be guarded by
     # the lock. The +run_loop+ method does the actual work.
-    # If 'revenant/daemon' has been required, all code
-    # (including that in +on_load+) will execute after a fork.
+    #
+    # If 'daemon' is set to true, your code (including +on_load+)
+    # will execute after a fork.
+    #
     # Make sure you don't open files and sockets in the exiting
     # parent process by mistake. Open them in code that is called
     # via +on_load+.
@@ -26,7 +29,7 @@ module Revenant
       end
       install_plugins
       startup # typically daemonizes the process, can have various implementations
-      on_load.call if on_load
+      on_load.call(self) if on_load
       run_loop(&block)
     end
 
@@ -200,7 +203,7 @@ module Revenant
     def method_missing(name, *args)
       name = name.to_s
       last_char = name[-1,1]
-      super unless last_char == "=" || last_char == "?"
+      super(name, *args) unless last_char == "=" || last_char == "?"
       attr_name = name[0..-2].to_sym # :foo for 'foo=' or 'foo?'
       if last_char == "="
         @options[attr_name] = args.at(0)
@@ -218,19 +221,11 @@ module Revenant
       exit 1 if quit
     end
 
-    # Installs a module plugin for the Task.
-    # Generally this is ::Revenant::Daemon providing daemon support.
-    def install(plugin)
-      singleton = class << self; self; end
-      singleton.send(:include, plugin)
-    end
-
-    # Install the built-in daemon plugin if the 'daemon' option is set.
-    # Subclasses may do otherwise.
+    # Install any plugins that have registered themselves, or a custom
+    # list if the user has set it themselves.
     def install_plugins
-      if daemon?
-        require 'revenant/daemon'
-        install ::Revenant::Daemon
+      ::Revenant.plugins.each do |name, plugin|
+        plugin.install(self)
       end
     end
   end # Task

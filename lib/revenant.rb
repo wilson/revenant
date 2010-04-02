@@ -1,6 +1,12 @@
 module Revenant
   VERSION = "0.0.1"
 
+  def self.init
+    require 'revenant/task'
+    require_locks
+    require_plugins
+  end
+
   # Register a new type of lock.
   # User code specifies which by setting lock_type = :something
   # while configuring a Revenant::Process
@@ -19,14 +25,31 @@ module Revenant
       raise ArgumentError, "unknown lock type: #{lock_type.inspect}"
     end
   end
-end
 
-require 'time'
-current = File.expand_path('..', __FILE__)
-make_relative = /#{current}\//
-$: << current unless $:.include?(current)
-Dir["#{current}/locks/*.rb"].each do |full_path|
-  require full_path.gsub(make_relative,'').gsub(/\.rb$/,'')
+  def self.plugins
+    @plugins ||= {}
+  end
+
+  def self.require_locks
+    require_dir "locks"
+  end
+
+  def self.require_plugins
+    require_dir "plugins"
+  end
+
+  # Given 'locks/foo', will require ./locks/foo/*.rb' with normalized
+  # (relative) paths. (e.g. require 'locks/foo/example' for example.rb)
+  def self.require_dir(relative_path)
+    current = File.expand_path('..', __FILE__)
+    make_relative = /#{current}\//
+    $LOAD_PATH << current unless $LOAD_PATH.include?(current)
+    pattern = File.join(current, relative_path, '*.rb')
+    Dir[pattern].each do |full_path|
+      require full_path.gsub(make_relative,'').gsub(/\.rb$/,'')
+    end
+    relative_path
+  end
 end
 
 module Kernel
@@ -34,11 +57,12 @@ module Kernel
     unless String === name || Symbol === name
       raise ArgumentError, "Usage: task = revenant('example') {|r| configure_as_needed }"
     end
-    require 'revenant/task'
-    instance = Revenant::Task.new(name)
-    instance.daemon = true
+    instance = ::Revenant::Task.new(name)
+    instance.daemon = true # daemonized by default if available
     yield instance if block_given?
     instance
   end
 end
+
+::Revenant.init
 

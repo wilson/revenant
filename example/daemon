@@ -1,0 +1,49 @@
+#!/usr/bin/env ruby
+
+# Load a copy of revenant relative to this dir.
+# In real code, you could use Bundler or RubyGems or similar.
+require 'rubygems'
+$: << File.expand_path("../../lib", __FILE__)
+require 'revenant'
+
+# Make a new task identified as 'example'.
+# Yields that task to the block in case you want to reuse configuration steps.
+# task.daemon = true is set by default. Set it to false if you want to
+# run in the foreground without forking.
+task = revenant(:example) do |t|
+  # Set a couple of options that are only used in daemon mode.
+  t.log_file = "/tmp/example.log"
+
+  # One instance of this per box:
+  t.pid_file = "/tmp/example.pid"
+  # or you could generate a different pid file for every invocation:
+  # t.pid_file = "/tmp/example-#{$$}.pid"
+  # all such processes that share a name would share a lock.
+end
+
+# Runs after a fork
+task.on_load do
+  # If we were using ActiveRecord here, the connection object
+  # would automatically be determined. Let's connect by hand instead.
+  require 'mysql'
+  conn = Mysql.connect(nil, "root", nil, nil, nil, "/tmp/mysql.sock")
+  Revenant::MySQL.connection = conn
+
+  puts "loaded #{task.script} as pid #{$$}"
+end
+
+task.on_exit do
+  puts "[#{$$}] exited"
+end
+
+# While we have the lock, do some work.
+count = 0
+task.run do
+  count += 1
+  puts "[#{$$}] work loops: #{count}"
+end
+
+# Before the process exits, control will reach this point.
+# Generally you should use 'on_exit' instead of just expecting
+# code after the 'run' block to execute.
+
