@@ -12,9 +12,12 @@ module Revenant
     end
 
     # Takes actual block of code that is to be guarded by
-    # the lock.
-    # The default +run_loop+ is defined in Revenant::Daemon
-    # and the block will execute in a fork.
+    # the lock. The +run_loop+ method does the actual work.
+    # If 'revenant/daemon' has been required, all code
+    # (including that in +on_load+) will execute after a fork.
+    # Make sure you don't open files and sockets in the exiting
+    # parent process by mistake. Open them in code that is called
+    # via +on_load+.
     def run(&block)
       if block.nil?
         raise ArgumentError, "Usage: run { while_we_have_the_lock }"
@@ -30,7 +33,9 @@ module Revenant
     end
 
     # Code to run just before the task looks for a lock
-    # By default, this code runs in a forked process.
+    # This code runs after any necessary forks, and is
+    # therefore the proper place to open databases, logfiles,
+    # and any other resources you require.
     def on_load(&block)
       @on_load ||= block
     end
@@ -60,6 +65,8 @@ module Revenant
     end
 
     # Returns a module that knows how to do some distributed locking.
+    # May not be the code that actually performs the lock, if this
+    # Task has had a +lock_function+ assigned to it explicitly.
     def lock_module
       ::Revenant.find_module(lock_type)
     end
@@ -73,6 +80,8 @@ module Revenant
     end
 
     # Set the frequency with which locks are re-acquired.
+    # Setting it to 0 or nil will assume the lock is forever valid after
+    # acquisition.
     def relock_every=(loops)
       loops ||= 0
       if Integer === loops && loops >= 0
@@ -132,14 +141,16 @@ module Revenant
       end # loop
     rescue Interrupt => ex
       log "shutting down after interrupt: #{ex.message}"
+      shutdown_soon # Always shut down from an Interrupt, even mid-restart.
       shutdown
     rescue Exception => ex
-      if SystemExit === ex
-        raise ex
-      else
-        error ex.message, false
-        shutdown
-      end
+      # We really want to rescue everything but Interrupt and SystemExit.
+      raise ex if SystemExit === ex
+      # Log an error but do not quit.
+      error ex.message, false
+      # Restart if we run into an exception.
+      restart_soon
+      shutdown
     ensure
       on_exit.call if on_exit
     end # run_loop
