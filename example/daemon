@@ -19,6 +19,9 @@ task = revenant(:example) do |t|
   # or you could generate a different pid file for every invocation:
   # t.pid_file = "/tmp/example-#{$$}.pid"
   # all such processes that share a name would share a lock.
+
+  # assume we never need to check for a lock once it has been acquired
+  # t.relock_every = nil
 end
 
 # Runs after a fork
@@ -43,8 +46,12 @@ task.run do
   puts "[#{$$}] work loops: #{count}"
 end
 
-# Before the forked process exits, control will reach this point.
+# In daemon mode, control will not reach this point.
+# With: task.daemon = false
+# we would continue executing code here after the task was told to
+# stop.
+#
 # Generally you should use 'on_exit' instead of just expecting
 # code after the 'run' block to execute.
 
-puts "[#{$$}] example/daemon script exiting"
+puts "[#{$$}] documentation is out of date"

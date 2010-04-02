@@ -21,27 +21,39 @@ module Revenant
     end
 
     ## Generally overridden when Revenant::Daemon is included
+    # The stack gets deeper here on every restart; this is here
+    # largely to ease testing.
+    # Implement your own plugin providing +shutdown+ if you want to
+    # make something serious that calls this code after a
+    # restart signal.
     def shutdown
-      log "#{name} is shutting down"
+      if restart_pending? && @work
+        log "#{name} is restarting"
+        run(&@work)
+      else
+        log "#{name} is shutting down"
+      end
     end
 
     # Takes actual block of code that is to be guarded by
     # the lock. The +run_loop+ method does the actual work.
     #
-    # If 'daemon' is set to true, your code (including +on_load+)
+    # If 'daemon?' is true, your code (including +on_load+)
     # will execute after a fork.
     #
     # Make sure you don't open files and sockets in the exiting
     # parent process by mistake. Open them in code that is called
     # via +on_load+.
     def run(&block)
-      if block.nil?
+      unless @work = block
         raise ArgumentError, "Usage: run { while_we_have_the_lock }"
       end
+      @shutdown = false
+      @restart = false
       install_plugins
       startup # typically daemonizes the process, can have various implementations
       on_load.call(self) if on_load
-      run_loop(&block)
+      run_loop(&@work)
       on_exit.call(self) if on_exit
       shutdown
     end
@@ -192,9 +204,7 @@ module Revenant
     def run_loop(&block)
       acquired = false
       begin
-        loop do
-          break if shutdown_pending?
-
+        until shutdown_pending?
           # The usual situation
           if relock_every != 0
             i ||= 0

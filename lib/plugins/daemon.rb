@@ -36,8 +36,10 @@ begin
       exit 0
     end
 
-    # Everything else is a daemon implementation detail, and will not
-    # be executed if +Task+ also happens to have a method by the same name.
+    ##
+    ## Everything else is a daemon implementation detail.
+    ##
+
     def pid_file
       @options[:pid_file] ||= File.join("/tmp", "#{@name}.pid")
     end
@@ -54,28 +56,35 @@ begin
 
     def daemonize
       verify_permissions
-      script # determine script path before forking if necessary
       Daemonize.daemonize(log_file, $0)
       @pid.create
       daemon_signals
     end
 
     def verify_permissions
+      unless File.executable?(script)
+        error "script file is not executable: #{script.inspect}"
+        exit 1
+      end
+
       dir = File.dirname(pid_file)
       unless File.directory?(dir) && File.writable?(dir)
         error "pid file is not writeable: #{pid_file.inspect}"
+        exit 1
       end
 
       @pid = ::Revenant::PID.new(pid_file)
       if @pid.exists?
         error "pid file exists: #{pid_file.inspect}. unclean shutdown?"
+        exit 1
       end
 
-      return unless log_file
 
-      dir = File.dirname(log_file)
-      unless File.directory?(dir) && File.writable?(dir)
-        error "log file is not writeable: #{log_file.inspect}"
+      if log_file && dir = File.dirname(log_file)
+        unless File.directory?(dir) && File.writable?(dir)
+          error "log file is not writeable: #{log_file.inspect}"
+          exit 1
+        end
       end
     end
 
