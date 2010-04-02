@@ -13,5 +13,9 @@ describe Revenant::Task do
   it "restarts on SIGUSR2" do
     pending
   end
+
+  it "logs a stack trace on SIGUSR1" do
+    pending
+  end
 end
 

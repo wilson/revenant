@@ -5,6 +5,7 @@ module Revenant
   class Task
     attr_reader :name
     attr_accessor :options
+    attr_writer :logger
 
     def initialize(name = nil)
       unless String === name || Symbol === name
@@ -12,6 +13,16 @@ module Revenant
       end
       @name = name.to_sym
       @options = {}
+    end
+
+    # Generally overridden when Revenant::Daemon is included
+    def startup
+      trap("INT") { shutdown_soon }
+    end
+
+    ## Generally overridden when Revenant::Daemon is included
+    def shutdown
+      log "#{name} is shutting down"
     end
 
     # Takes actual block of code that is to be guarded by
@@ -31,12 +42,8 @@ module Revenant
       startup # typically daemonizes the process, can have various implementations
       on_load.call(self) if on_load
       run_loop(&block)
+      on_exit.call(self) if on_exit
       shutdown
-    end
-
-    # Code to run when the task is exiting
-    def on_exit(&block)
-      @on_exit ||= block
     end
 
     # Code to run just before the task looks for a lock
@@ -47,6 +54,11 @@ module Revenant
       @on_load ||= block
     end
 
+    # Code to run when the task is exiting.
+    def on_exit(&block)
+      @on_exit ||= block
+    end
+
     # Used to pick the Task's +lock_module+
     # Particular lock types may offer various helpful features
     # via this lock module.
@@ -55,7 +67,7 @@ module Revenant
       @lock_type ||= :mysql
     end
 
-    # Set a new lock type for this Task
+    # Set a new lock type for this Task.
     def lock_type=(val)
       @lock_type = val.to_sym
     end
@@ -115,6 +127,65 @@ module Revenant
       end
     end
 
+    # This could be the moment.
+    def shutdown_pending?
+      @shutdown ||= false
+    end
+
+    # At last, back to war.
+    def restart_pending?
+      @restart ||= false
+    end
+
+    # Task will restart at the earliest safe opportunity after
+    # +restart_soon+ is called.
+    def restart_soon
+      @restart = true
+      @shutdown = true
+    end
+
+    # Task will shut down at the earliest safe opportunity after
+    # +shutdown_soon+ is called.
+    def shutdown_soon
+      @restart = false
+      @shutdown = true
+    end
+
+    ## Used to lazily store/retrieve options that may be needed by plugins.
+    # We may want to capture, say, +log_file+ before actually loading the
+    # code that might care about such a concept.
+    def method_missing(name, *args)
+      name = name.to_s
+      last_char = name[-1,1]
+      super(name, *args) unless last_char == "=" || last_char == "?"
+      attr_name = name[0..-2].to_sym # :foo for 'foo=' or 'foo?'
+      if last_char == "="
+        @options[attr_name] = args.at(0)
+      else
+        @options[attr_name]
+      end
+    end
+
+    def log(message)
+      logger.puts "[#{$$}] #{Time.now.iso8601(2)} - #{message}"
+    end
+
+    def error(message)
+      logger.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
+    end
+
+    def logger
+      @logger ||= STDERR
+    end
+
+    # Install any plugins that have registered themselves, or a custom
+    # list if the user has set it themselves.
+    def install_plugins
+      ::Revenant.plugins.each do |name, plugin|
+        plugin.install(self)
+      end
+    end
+
     # Run until we receive a shutdown/reload signal,
     # or when the worker raises an Interrupt.
     # Runs after a fork when Revenant::Daemon is enabled.
@@ -157,76 +228,9 @@ module Revenant
         error ex.message
         # Restart if we run into an exception.
         restart_soon
-      ensure
-        on_exit.call(self) if on_exit
       end # begin block
     end # run_loop
     protected :run_loop
-
-    # This could be the moment.
-    def shutdown_pending?
-      @shutdown ||= false
-    end
-
-    # At last, back to war.
-    def restart_pending?
-      @restart ||= false
-    end
-
-    # Task will restart at the earliest safe opportunity after
-    # +restart_soon+ is called.
-    def restart_soon
-      @restart = true
-      @shutdown = true
-    end
-
-    # Task will shut down at the earliest safe opportunity after
-    # +shutdown_soon+ is called.
-    def shutdown_soon
-      @restart = false
-      @shutdown = true
-    end
-
-    # Generally overridden when Revenant::Daemon is included
-    def startup
-      trap("INT") { shutdown_soon }
-    end
-
-    ## Generally overridden when Revenant::Daemon is included
-    def shutdown
-      log "#{name} is shutting down"
-    end
-
-    ## Used to lazily store/retrieve options that may be needed by plugins.
-    # We may want to capture, say, +log_file+ before actually loading the
-    # code that might care about such a concept.
-    def method_missing(name, *args)
-      name = name.to_s
-      last_char = name[-1,1]
-      super(name, *args) unless last_char == "=" || last_char == "?"
-      attr_name = name[0..-2].to_sym # :foo for 'foo=' or 'foo?'
-      if last_char == "="
-        @options[attr_name] = args.at(0)
-      else
-        @options[attr_name]
-      end
-    end
-
-    def log(message)
-      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - #{message}"
-    end
-
-    def error(message)
-      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
-    end
-
-    # Install any plugins that have registered themselves, or a custom
-    # list if the user has set it themselves.
-    def install_plugins
-      ::Revenant.plugins.each do |name, plugin|
-        plugin.install(self)
-      end
-    end
   end # Task
 end # Revenant
 
