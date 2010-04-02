@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'revenant/daemon'
 
 describe Revenant::Task do
   before do
