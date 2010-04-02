@@ -52,7 +52,11 @@ module Revenant
     # Should return true if a lock has been acquired, false otherwise.
     # task.lock_function {|name| # .. }
     def lock_function(&block)
-      @lock_function ||= block || lock_module.lock_function
+      if block_given?
+        @lock_function = block
+      else
+        @lock_function ||= lock_module.lock_function
+      end
     end
 
     # Returns a module that knows how to do some distributed locking.
@@ -101,7 +105,7 @@ module Revenant
     def run_loop(&block)
       acquired = false
       loop do
-        shutdown if time_to_die?
+        shutdown if shutdown_pending?
 
         # The usual situation
         if relock_every != 0
@@ -122,7 +126,7 @@ module Revenant
         # Sleep one second at a time so we can quickly respond to
         # shutdown requests.
         sleep_for.times do
-          sleep(1) unless time_to_die?
+          sleep(1) unless shutdown_pending?
         end
         i += 1
       end # loop
@@ -139,24 +143,30 @@ module Revenant
     ensure
       on_exit.call if on_exit
     end # run_loop
+    protected :run_loop
 
     # This could be the moment.
-    def time_to_die?
+    def shutdown_pending?
       @shutdown ||= false
     end
 
     # At last, back to war.
-    def rise_again?
+    def restart_pending?
       @restart ||= false
     end
 
-    def log(message)
-      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - #{message}"
+    # Task will restart at the earliest safe opportunity after
+    # +restart_soon+ is called.
+    def restart_soon
+      @restart = true
+      @shutdown = true
     end
 
-    def error(message, quit = true)
-      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
-      exit 1 if quit
+    # Task will shut down at the earliest safe opportunity after
+    # +shutdown_soon+ is called.
+    def shutdown_soon
+      @restart = false
+      @shutdown = true
     end
 
     # Generally overridden when Revenant::Daemon is included
@@ -171,6 +181,15 @@ module Revenant
     def shutdown
       log "#{name} is shutting down"
       exit 0
+    end
+
+    def log(message)
+      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - #{message}"
+    end
+
+    def error(message, quit = true)
+      STDERR.puts "[#{$$}] #{Time.now.iso8601(2)} - ERROR: #{message}"
+      exit 1 if quit
     end
   end # Task
 end # Revenant

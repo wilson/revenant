@@ -11,6 +11,7 @@ describe Revenant::Task do
     end
     @lock = SpecLock
     Revenant.register("spec", @lock)
+    @task.stubs(:exit)
   end
 
   it "requires a name" do
@@ -84,12 +85,23 @@ describe Revenant::Task do
     @task.sleep_for.should == 0
   end
 
-  it "captures a 'lock_function' block" do
-    @task.lock_function do
-      true
+  context "#lock_function" do
+    it "captures a 'lock_function' block" do
+      @task.lock_function do
+        true
+      end
+      @task.lock_function.should be_instance_of(Proc)
+      @task.lock_function.should_not == Revenant::MySQL.lock_function
     end
-    @task.lock_function.should be_instance_of(Proc)
-    @task.lock_function.should_not == Revenant::MySQL.lock_function
+
+    it "replaces an existing 'lock_function' if it is set" do
+      @task.lock_function do
+        true
+      end
+      func = proc { false }
+      @task.lock_function(&func)
+      @task.lock_function.should == func
+    end
   end
 
   context "logging" do
@@ -140,6 +152,27 @@ describe Revenant::Task do
     end
   end
 
+  it "can be restarted" do
+    @task.restart_soon
+    @task.should be_shutdown_pending
+    @task.should be_restart_pending
+  end
+
+  it "can be shut down" do
+    @task.shutdown_soon
+    @task.should be_shutdown_pending
+    @task.should_not be_restart_pending
+  end
+
   context "#run_loop" do
+    context "relock_every = 0" do
+    end
+
+    context "relock_every = 1" do
+    end
+
+    context "encountering an Interrupt"
+    context "encountering a SystemExit"
+    context "encountering an Exception"
   end
 end

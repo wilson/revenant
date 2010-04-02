@@ -12,7 +12,7 @@ module ::Revenant::Daemon
   def shutdown
     @pid.remove
 
-    if rise_again?
+    if restart_pending?
       log "#{name} is restarting"
       system script
     else
