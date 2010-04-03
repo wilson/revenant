@@ -19,7 +19,7 @@ Lots of scheduled jobs to coordinate that must not interfere?
 Want that work to keep happening when servers die?
 
 #!/usr/bin/env ruby
-require 'revenant/daemon' # includes daemon functionality
+require 'revenant'
 task = revenant(:example)
 task.on_load { require 'config/environment.rb' }
 task.on_exit { something_to_do_last }
@@ -31,9 +31,10 @@ task.lock_function { true }
 Want your code to sleep forever?
 task.lock_function { false }
 
+See the 'example' directory for more.
+
 == REQUIREMENTS:
 
-* daemons
 * mysql (not a dependency, but you will probably want it)
 
 == INSTALL:

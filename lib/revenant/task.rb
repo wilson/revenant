@@ -232,15 +232,10 @@ module Revenant
         log "shutting down after interrupt: #{ex.message}"
         shutdown_soon # Always shut down from an Interrupt, even mid-restart.
       rescue Exception => ex
-        # We really want to rescue everything but Interrupt and SystemExit.
-        raise ex if SystemExit === ex
-        # Log an error but do not quit.
-        error ex.message
-        # Restart if we run into an exception.
-        restart_soon
+        error "restarting after error: #{ex.message}"
+        restart_soon # Restart if we run into an exception.
       end # begin block
     end # run_loop
-    protected :run_loop
   end # Task
 end # Revenant
 

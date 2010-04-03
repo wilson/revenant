@@ -1,12 +1,6 @@
 module Revenant
   VERSION = "0.0.1"
 
-  def self.init
-    require 'revenant/task'
-    require_locks
-    require_plugins
-  end
-
   # Register a new type of lock.
   # User code specifies which by setting lock_type = :something
   # while configuring a Revenant::Process
@@ -30,11 +24,9 @@ module Revenant
     @plugins ||= {}
   end
 
-  def self.require_locks
+  def self.init
+    require 'revenant/task'
     require_dir "locks"
-  end
-
-  def self.require_plugins
     require_dir "plugins"
   end
 
@@ -46,9 +38,21 @@ module Revenant
     $LOAD_PATH << current unless $LOAD_PATH.include?(current)
     pattern = File.join(current, relative_path, '*.rb')
     Dir[pattern].each do |full_path|
-      require full_path.gsub(make_relative,'').gsub(/\.rb$/,'')
+      relative_name = full_path.gsub(make_relative,'').gsub(/\.rb$/,'')
+      require relative_name
     end
-    relative_path
+  end
+
+  def self.working_directory
+    # If the 'PWD' environment variable points to our
+    # current working directory, use it instead of Dir.pwd.
+    # It may have a better name for the same destination,
+    # in the presence of symlinks.
+    e = File.stat(env_pwd = ENV['PWD'])
+    p = File.stat(Dir.pwd)
+    e.ino == p.ino && e.dev == p.dev ? env_pwd : Dir.pwd
+  rescue
+    Dir.pwd
   end
 end
 

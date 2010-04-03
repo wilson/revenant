@@ -1,9 +1,13 @@
 require 'spec_helper'
 
-describe Revenant::Task do
+describe Revenant::Daemon do
   before do
     @task = Revenant::Task.new("daemonsignal")
     @task.stubs(:exit)
+  end
+
+  it "is registered as the :daemon plugin" do
+    Revenant.plugins[:daemon].should == ::Revenant::Daemon
   end
 
   it "shuts down on SIGTERM" do
