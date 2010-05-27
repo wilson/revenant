@@ -94,6 +94,11 @@ module ::Revenant::Daemon
       shutdown_soon
     end
 
+    trap("QUIT") do
+      log "QUIT: #{caller.inspect}"
+      shutdown_soon
+    end
+
     trap("USR1") do
       log "TRACE: #{caller.inspect}"
     end
