@@ -233,6 +233,7 @@ module Revenant
         shutdown_soon # Always shut down from an Interrupt, even mid-restart.
       rescue Exception => ex
         error "restarting after error: #{ex.message}"
+        error "backtrace: #{ex.backtrace.join("\n")}"
         restart_soon # Restart if we run into an exception.
       end # begin block
     end # run_loop
