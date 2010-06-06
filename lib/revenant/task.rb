@@ -17,6 +17,7 @@ module Revenant
 
     # Generally overridden when Revenant::Daemon is included
     def startup
+      log "#{name} is starting"
       trap("INT") { shutdown_soon }
     end
 

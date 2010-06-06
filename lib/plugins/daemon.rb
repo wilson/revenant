@@ -19,6 +19,7 @@ module ::Revenant::Daemon
   def startup
     @original_dir = ::Revenant.working_directory
     daemonize
+    log "#{name} is starting"
   end
 
   def shutdown
