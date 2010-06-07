@@ -4,7 +4,7 @@ module Revenant
 
     def daemonize(name, log_file = nil)
       # Firstly, get rid of the filthy dirty original process.
-      exit! if fork
+      exit!(0) if fork
 
       # Now that we aren't attached to a terminal, we can become
       # a session leader.
