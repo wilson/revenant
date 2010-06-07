@@ -229,11 +229,12 @@ module Revenant
           end
           i += 1
         end # loop
-      rescue Interrupt => ex
-        log "shutting down after interrupt: #{ex.message}"
+      rescue ::Interrupt => ex
+        log "shutting down after interrupt: #{ex.class} - #{ex.message}"
         shutdown_soon # Always shut down from an Interrupt, even mid-restart.
-      rescue Exception => ex
-        error "restarting after error: #{ex.message}"
+        return
+      rescue ::Exception => ex
+        error "restarting after error: #{ex.class} - #{ex.message}"
         error "backtrace: #{ex.backtrace.join("\n")}"
         restart_soon # Restart if we run into an exception.
       end # begin block
