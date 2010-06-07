@@ -16,7 +16,7 @@ module Revenant
       trap 'SIGHUP', 'IGNORE' # don't do anything crazy when this process exits
 
       # Finally, time to create a daemonized process
-      exit! if fork
+      exit!(0) if fork
 
       $0 = name.to_s # set the process name
       close_open_files

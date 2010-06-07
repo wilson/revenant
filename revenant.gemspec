@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{revenant}
-  s.version = "0.0.1"
+  s.version = "0.0.2"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 1.3.7")
   s.authors = ["Wilson Bilkovich"]
-  s.date = %q{2010-05-25}
+  s.date = %q{2010-06-06}
   s.email = %q{wilson@supremetyrant.com}
   s.files = %w[
     lib/revenant.rb
