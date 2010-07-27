@@ -3,7 +3,7 @@ module Revenant
 
   # Register a new type of lock.
   # User code specifies which by setting lock_type = :something
-  # while configuring a Revenant::Process
+  # while configuring a Revenant::Task
   def self.register(lock_type, klass)
     @lock_types ||= {}
     if klass.respond_to?(:lock_function)
