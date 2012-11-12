@@ -8,14 +8,7 @@ Gem::Specification.new do |s|
   s.authors = ["Wilson Bilkovich"]
   s.date = %q{2010-06-06}
   s.email = %q{wilson@supremetyrant.com}
-  s.files = %w[
-    lib/revenant.rb
-    lib/revenant/task.rb
-    lib/revenant/manager.rb
-    lib/plugins/daemon.rb
-    lib/revenant/pid.rb
-    lib/locks/mysql.rb
-  ]
+  s.files = Dir['lib/**/*.rb']
   s.has_rdoc = true
   s.homepage = %q{http://github.com/wilson/revenant}
   s.require_paths = ["lib"]
