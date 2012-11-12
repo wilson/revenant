@@ -9,11 +9,12 @@ Gem::Specification.new do |s|
   s.date = %q{2010-06-06}
   s.email = %q{wilson@supremetyrant.com}
   s.files = Dir['lib/**/*.rb']
-  s.has_rdoc = true
+  s.has_rdoc = false
   s.homepage = %q{http://github.com/wilson/revenant}
   s.require_paths = ["lib"]
   s.rubygems_version = %q{1.3.7}
   s.summary = %q{Distributed daemons that just will not die.}
+  s.description = "A framework for building reliable distributed workers."
 
   s.specification_version = 2
 end
