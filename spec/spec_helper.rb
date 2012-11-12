@@ -9,11 +9,13 @@ rescue LoadError
   # Fall back on doing an unlocked resolve at runtime.
   require "rubygems"
   require "bundler"
-  Bundler.setup
+  Bundler.setup(:default, :test)
 end
 
-# For more information take a look at Spec::Runner::Configuration and Spec::Runner
-Spec::Runner.configure do |config|
-  config.mock_with :mocha
+require 'rspec'
+require File.expand_path('../mock_helper', __FILE__)
+
+RSpec.configure do |config|
+  config.mock_with :absolutely_nothing
 end
 

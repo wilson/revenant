@@ -1,19 +1,9 @@
 def create_spec_tasks
-  require 'spec/rake/spectask'
+  require 'rspec/core/rake_task'
   desc "Run the specs"
-  Spec::Rake::SpecTask.new do |t|
-    t.spec_opts = ['--options', "spec/spec.opts"]
-    t.spec_files = FileList['spec/**/*_spec.rb']
-  end
-
-  namespace :spec do
-    desc "Run all specs in spec directory with RCov"
-    Spec::Rake::SpecTask.new(:rcov) do |t|
-      t.spec_opts = ['--options', "spec/spec.opts"]
-      t.spec_files = FileList['spec/**/*_spec.rb']
-      t.rcov = true
-      t.rcov_opts = ['--exclude "spec/*,gems/*"']
-    end
+  RSpec::Core::RakeTask.new do |t|
+    t.rspec_opts = ['--options', "spec/spec.opts"]
+    t.pattern = 'spec/**/*_spec.rb'
   end
 end
 

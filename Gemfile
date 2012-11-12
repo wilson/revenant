@@ -1,10 +1,7 @@
-source "http://rubygems.org"
+source 'http://rubygems.org'
 gemspec
-
-group :test do
-  gem "rspec"
-  gem "rcov"
-  gem "mocha"
-end
+gem 'rake',  :require => nil
+gem 'rspec', :require => nil
+gem 'mocha', :require => nil
 
 # vim: syntax=ruby
